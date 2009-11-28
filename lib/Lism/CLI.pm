@@ -124,16 +124,19 @@ sub usage {
 }
 
 sub run {
-    my ($self) = @_;
+    my ($self, @args) = @_;
     $self->get_options;
-    eval { $self->main };
+    my $result;
+    eval { $result = $self->main(@args) };
     if ( $@ ) {
         $self->failed(1);
         $self->log($self->log . "\n[ERROR!] $@\n");
     }
+    return $result;
 }
 
 sub main {
+    my ($self, @args) = @_;
     Carp::croak 'implement your command';
 }
 
