@@ -128,7 +128,10 @@ sub get_options {
 }
 
 sub usage {
-    print $USAGE;
+    our $USAGE;
+    my $self = shift;
+    my $class = ref $self;
+    eval 'print $' . $class . '::USAGE'; ## no critic
     exit 1;
 }
 
