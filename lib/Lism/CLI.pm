@@ -182,6 +182,13 @@ sub print_report {
         $self->mail_from, $self->mail_to, $self->mail_subject, $self->report;
 }
 
+sub confirm {
+    my ($self, $msg) = @_;
+    print $msg, " (y/[n]) ";
+    my $ok = readline(*STDIN);
+    $ok =~ /^y/i;
+}
+
 1;
 __END__
 
