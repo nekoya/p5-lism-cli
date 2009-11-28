@@ -14,9 +14,20 @@ use Getopt::Long;
 use POSIX;
 use Sys::Hostname;
 
+has 'conf' => (
+    is  => 'rw',
+    isa => 'Lism::Config',
+);
+
 has 'opt' => (
     is  => 'rw',
     isa => 'HashRef',
+);
+
+has 'options' => (
+    is      => 'ro',
+    isa     => 'ArrayRef',
+    default => sub { ['help'] },
 );
 
 has 'failed' => (
@@ -110,10 +121,8 @@ sub BUILD {
 sub get_options {
     my ($self) = @_;
     my %opt;
-    GetOptions(
-        \%opt,
-        'help',
-    ) or $self->usage;
+    my @options = (\%opt, @{$self->options});
+    GetOptions(@options) or $self->usage;
     $self->usage if $opt{ help };
     $self->opt(\%opt);
 }
