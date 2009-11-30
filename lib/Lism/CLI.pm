@@ -37,7 +37,7 @@ has 'failed' => (
 );
 
 has 'mail_subject' => (
-    is      => 'ro',
+    is      => 'rw',
     isa     => 'Str',
     lazy    => 1,
     default => sub {
@@ -164,15 +164,16 @@ sub report {
 
 sub send_report_mail {
     my ($self) = @_;
-    my $subject = $self->failed ? $self->mail_error_subject : $self->mail_subject;
+    my $report = $self->report;
+    $report =~ s/\e\[\d+m//g;
     my $mail = Email::MIME->create(
         header => [
             From    => $self->mail_from,
             To      => $self->mail_to,
-            Subject => Encode::encode('MIME-Header-ISO_2022_JP', $subject),
+            Subject => Encode::encode('MIME-Header-ISO_2022_JP', $self->mail_subject),
         ],
         parts => [
-            encode('iso-2022-jp', $self->report),
+            encode('iso-2022-jp', $report),
         ],
     );
     my $sender = Email::Send->new({ mailer => 'Sendmail' });
