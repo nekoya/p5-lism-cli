@@ -3,8 +3,6 @@ use warnings;
 
 use Test::More tests => 3;
 
-use FindBin::libs;
-
 package Mock::App;
 use Any::Moose;
 extends 'Lism::CLI';
