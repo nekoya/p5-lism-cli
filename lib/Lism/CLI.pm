@@ -19,11 +19,13 @@ has 'conf' => (
     isa => 'Lism::Config',
 );
 
+# executed options
 has 'opt' => (
     is  => 'rw',
     isa => 'HashRef',
 );
 
+# options definitions
 has 'options' => (
     is      => 'ro',
     isa     => 'ArrayRef',
@@ -34,47 +36,6 @@ has 'failed' => (
     is      => 'rw',
     isa     => 'Bool',
     default => 0,
-);
-
-has 'mail_subject' => (
-    is      => 'rw',
-    isa     => 'Str',
-    lazy    => 1,
-    default => sub {
-        my $self = shift;
-        $self->failed ? $self->mail_error_subject : $self->mail_success_subject;
-    },
-);
-
-has 'mail_success_subject' => (
-    is      => 'rw',
-    isa     => 'Str',
-    lazy    => 1,
-    default => sub { '[notice] ' . $FindBin::Script . ' done' },
-);
-
-has 'mail_error_subject' => (
-    is      => 'rw',
-    isa     => 'Str',
-    lazy    => 1,
-    default => sub { '[ERROR!] ' . $FindBin::Script . ' failed' },
-);
-
-has 'mail_to' => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => 'root@localhost',
-);
-
-has 'mail_from' => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => 'root@localhost',
-);
-
-has 'mail_body' => (
-    is      => 'rw',
-    isa     => 'Str',
 );
 
 has 'start_time' => (
@@ -162,18 +123,23 @@ sub report {
     $body .= "\n" . "-" x 40 . "\nfinished at " . $self->finish_time . "\n";
 }
 
-sub send_report_mail {
+sub plain_report {
     my ($self) = @_;
     my $report = $self->report;
     $report =~ s/\e\[\d+m//g;
+    return $report;
+}
+
+sub send_mail {
+    my ($self, $args) = @_;
     my $mail = Email::MIME->create(
         header => [
-            From    => $self->mail_from,
-            To      => $self->mail_to,
-            Subject => Encode::encode('MIME-Header-ISO_2022_JP', $self->mail_subject),
+            From    => $args->{ from },
+            To      => $args->{ to },
+            Subject => Encode::encode('MIME-Header-ISO_2022_JP', $args->{ subject }),
         ],
         parts => [
-            encode('iso-2022-jp', $report),
+            encode('iso-2022-jp', $args->{ body }),
         ],
     );
     my $sender = Email::Send->new({ mailer => 'Sendmail' });
@@ -181,9 +147,9 @@ sub send_report_mail {
 }
 
 sub print_report {
-    my ($self) = @_;
+    my ($self, $args) = @_;
     printf "   From: %s\n     To: %s\nSubject: %s\n\n%s",
-        $self->mail_from, $self->mail_to, $self->mail_subject, $self->report;
+        $args->{ from }, $args->{ to }, $args->{ subject }, $self->report;
 }
 
 sub confirm {
