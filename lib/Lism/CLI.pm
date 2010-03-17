@@ -159,6 +159,11 @@ sub confirm {
     $ok =~ /^y/i;
 }
 
+sub logging {
+    my ($self, $level, $msg) = @_;
+    $self->log($self->log . "[$level] $msg\n");
+}
+
 1;
 __END__
 
