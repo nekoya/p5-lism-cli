@@ -19,6 +19,5 @@ ok my $app = Mock::App->new, 'create application object';
 $app->run;
 is $app->failed, 1, 'script failed';
 
-#$app->send_report_mail;
-like $app->report, qr/\-{40}\n\n\[ERROR!\] DIEEEEEEE![^\n]+\n\n\-{40}/, 'assert error report log';
-#$app->print_report;
+like $app->report, qr/\-{40}\n\[error\] DIEEEEEEE![^\n]+\n\-{40}/, 'assert error report log';
+note $app->report;

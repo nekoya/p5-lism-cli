@@ -1,0 +1,6 @@
+alert_email:
+  notice: notice@example.com
+  warn: warn@example.com
+  crit: crit@example.com
+
+mail_from: system@example.com

@@ -1,8 +1,9 @@
 package Lism::CLI;
 use Any::Moose;
 
-our $VERSION = '0.01';
+our $VERSION = '0.10';
 
+use Config::YAML;
 use Encode;
 use Email::MIME;
 use Email::MIME::Creator;
@@ -14,9 +15,16 @@ use Getopt::Long;
 use POSIX;
 use Sys::Hostname;
 
+# config yaml filename
+has 'config' => (
+    is  => 'rw',
+    isa => 'Str',
+);
+
+# config object
 has 'conf' => (
     is  => 'rw',
-    isa => 'Lism::Config',
+    isa => 'Config::YAML',
 );
 
 # executed options
@@ -29,7 +37,19 @@ has 'opt' => (
 has 'options' => (
     is      => 'ro',
     isa     => 'ArrayRef',
-    default => sub { ['help'] },
+    default => sub { [qw/debug help verbose/] },
+);
+
+has 'debug' => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 0,
+);
+
+has 'error_level' => (
+    is      => 'rw',
+    isa     => 'Str',
+    default => 'notice',
 );
 
 has 'failed' => (
@@ -70,13 +90,16 @@ command - description
   Usage: command [options] args
 
   Options:
-    -h(--help)    show this help
+    -d(--debug)    debug mode
+    -h(--help)     show this help
+    -v(--verbose)  verbose mode
 
 Written by your name<email>
 END_USAGE
 
 sub BUILD {
-    #my $mailbody  = "running $script on $hostname at $starttime\n" . "-" x 40 . "\n";
+    my $self = shift;
+    $self->conf(Config::YAML->new(config => $self->config)) if $self->config;
 }
 
 sub get_options {
@@ -85,6 +108,7 @@ sub get_options {
     my @options = (\%opt, @{$self->options});
     GetOptions(@options) or $self->usage;
     $self->usage if $opt{ help };
+    $self->debug(1) if $opt{ debug };
     $self->opt(\%opt);
 }
 
@@ -103,7 +127,8 @@ sub run {
     eval { $result = $self->main(@args) };
     if ( $@ ) {
         $self->failed(1);
-        $self->log($self->log . "\n[ERROR!] $@\n");
+        $self->error_level('crit');
+        $self->logging($@, 'error');
     }
     return $result;
 }
@@ -123,14 +148,27 @@ sub report {
     $body .= "\n" . "-" x 40 . "\nfinished at " . $self->finish_time . "\n";
 }
 
-sub plain_report {
-    my ($self) = @_;
-    my $report = $self->report;
-    $report =~ s/\e\[\d+m//g;
-    return $report;
+sub _escape {
+    my ($self, $text) = @_;
+    $text =~ s/\e\[\d+m//g;
+    return $text;
 }
 
-sub send_mail {
+sub send_report {
+    my ($self) = @_;
+    Carp::croak 'config undefined' unless $self->conf;
+    my $alert_lv = $self->error_level || 'notice';
+    my $args = {
+        from    => $self->conf->{ mail_from },
+        to      => $self->conf->{ alert_email }->{ $alert_lv },
+        subject => "[$alert_lv] alert from $FindBin::Script",
+        body    => $self->report,
+    };
+    my $method = $self->debug ? '_print_mail' : '_send_mail';
+    $self->$method($args);
+}
+
+sub _send_mail {
     my ($self, $args) = @_;
     my $mail = Email::MIME->create(
         header => [
@@ -139,17 +177,17 @@ sub send_mail {
             Subject => Encode::encode('MIME-Header-ISO_2022_JP', $args->{ subject }),
         ],
         parts => [
-            encode('iso-2022-jp', $args->{ body }),
+            encode('iso-2022-jp', $self->_escape($args->{ body })),
         ],
     );
     my $sender = Email::Send->new({ mailer => 'Sendmail' });
     $sender->send($mail);
 }
 
-sub print_report {
+sub _print_mail {
     my ($self, $args) = @_;
     printf "   From: %s\n     To: %s\nSubject: %s\n\n%s",
-        $args->{ from }, $args->{ to }, $args->{ subject }, $self->report;
+        $args->{ from }, $args->{ to }, $args->{ subject }, $args->{ body };
 }
 
 sub confirm {
@@ -160,7 +198,9 @@ sub confirm {
 }
 
 sub logging {
-    my ($self, $level, $msg) = @_;
+    my ($self, $msg, $level) = @_;
+    $level ||= 'info';
+    chomp $msg;
     $self->log($self->log . "[$level] $msg\n");
 }
 
@@ -173,11 +213,98 @@ Lism::CLI -
 
 =head1 SYNOPSIS
 
-  use Lism::CLI;
+  package Your::App;
+  use Any::Moose;
+  extends 'Lism::CLI';
+
+  sub main { ... your logic ... }
+
+  package main;
+  my $app = Your::App->new(config => $yamlfile);
+  $app->run;
+  $app->send_report if $app->failed || $app->opt->{ verbose };
 
 =head1 DESCRIPTION
 
 Lism::CLI is
+
+=head1 PROPERTIES
+
+=over 4
+
+=item config
+
+config YAML file name.
+
+=item conf
+
+Config::YAML object. Loading YAML file ($self->{ config }) at BUILD method.
+
+=item opt
+
+Command line options.
+
+=item options
+
+Definition of options.
+
+=item failed
+
+Application executed failed or not.
+
+=item start_time
+=item finish_time
+=item hostname
+=item log
+
+=back
+
+=head1 METHODS
+
+=over 4
+
+=item get_options
+
+=item usage
+
+=item run( @args )
+
+=item main( @args )
+
+You need to override this method.
+
+=item report
+
+Return report.
+
+=item _escape( $text )
+
+Remove escape sequence.
+
+=item send_report
+
+Send report to email or stdout (depends on debug mode).
+
+=item _send_mail( $args )
+
+Send mail. $args takes "from", "to", "subject" and "body" as its key.
+
+=item _print_mail( $args )
+
+Print mail data instead of send acutual e-mail.
+
+=item confirm( $msg )
+
+Input by readline.
+
+=item logging( $msg (, $default) )
+
+Logging $msg. default level is 'info'.
+
+  $app->logging('info message');
+  $app->logging('file not found', 'error');
+
+=back
 
 =head1 AUTHOR
 
