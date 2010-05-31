@@ -161,7 +161,7 @@ sub send_report {
     my $args = {
         from    => $self->conf->{ mail_from },
         to      => $self->conf->{ alert_email }->{ $alert_lv },
-        subject => "[$alert_lv] alert from $FindBin::Script",
+        subject => "[$alert_lv] running $FindBin::Script",
         body    => $self->report,
     };
     my $method = $self->debug ? '_print_mail' : '_send_mail';
