@@ -126,10 +126,9 @@ sub run {
     my $result;
     eval { $result = $self->main(@args) };
     if ( $@ ) {
-        $self->failed(1);
-        $self->error_level('crit');
         $self->logging($@, 'error');
     }
+    $self->detect_error_level;
     return $result;
 }
 
@@ -188,6 +187,18 @@ sub _print_mail {
     my ($self, $args) = @_;
     printf "   From: %s\n     To: %s\nSubject: %s\n\n%s",
         $args->{ from }, $args->{ to }, $args->{ subject }, $args->{ body };
+}
+
+sub detect_error_level {
+    my ($self) = @_;
+    my $log = $self->log;
+    if ( $log =~ /^\[warn\]/m ) {
+        $self->error_level('warn');
+    }
+    if ( $log =~ /^\[error\]/m ) {
+        $self->error_level('crit');
+        $self->failed(1);
+    }
 }
 
 sub confirm {
