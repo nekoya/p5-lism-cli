@@ -3,7 +3,6 @@ use Any::Moose;
 
 our $VERSION = '0.10';
 
-use Config::YAML;
 use Encode;
 use Email::MIME;
 use Email::MIME::Creator;
@@ -15,14 +14,7 @@ use Getopt::Long;
 use POSIX;
 use Sys::Hostname;
 
-# config yaml filename
 has 'config' => (
-    is  => 'rw',
-    isa => 'Str',
-);
-
-# config object
-has 'conf' => (
     is  => 'rw',
     isa => 'Config::YAML',
 );
@@ -97,11 +89,6 @@ command - description
 Written by your name<email>
 END_USAGE
 
-sub BUILD {
-    my $self = shift;
-    $self->conf(Config::YAML->new(config => $self->config)) if $self->config;
-}
-
 sub get_options {
     my ($self) = @_;
     my %opt;
@@ -155,11 +142,11 @@ sub _escape {
 
 sub send_report {
     my ($self) = @_;
-    Carp::croak 'config undefined' unless $self->conf;
+    Carp::croak 'config undefined' unless $self->config;
     my $alert_lv = $self->error_level || 'notice';
     my $args = {
-        from    => $self->conf->{ mail_from },
-        to      => $self->conf->{ alert_email }->{ $alert_lv },
+        from    => $self->config->{ mail_from },
+        to      => $self->config->{ alert_email }->{ $alert_lv },
         subject => "[$alert_lv] running $FindBin::Script",
         body    => $self->report,
     };
@@ -231,7 +218,8 @@ Lism::CLI -
   sub main { ... your logic ... }
 
   package main;
-  my $app = Your::App->new(config => $yamlfile);
+  my $config = Config::YAML->new(config => $filename);
+  my $app = Your::App->new(config => $config);
   $app->run;
   $app->send_report if $app->failed || $app->opt->{ verbose };
 
@@ -245,11 +233,7 @@ Lism::CLI is
 
 =item config
 
-config YAML file name.
-
-=item conf
-
-Config::YAML object. Loading YAML file ($self->{ config }) at BUILD method.
+Config::YAML object.
 
 =item opt
 
