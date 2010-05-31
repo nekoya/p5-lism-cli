@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 2;
+use Test::More;
 
 use FindBin::libs;
 
@@ -17,3 +17,5 @@ sub main {
 package main;
 ok my $app = Mock::App->new, 'create application object';
 is $app->run('hoge', 'fuga'), 'hoge-fuga', 'result from args';
+
+done_testing;

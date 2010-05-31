@@ -1,7 +1,8 @@
 use strict;
 use warnings;
 
-use Test::More tests => 3;
+use Test::More;
+use FindBin::libs;
 
 package Mock::App;
 use Any::Moose;
@@ -18,3 +19,5 @@ $app->run;
 is $app->failed, 0, 'script succeeded';
 
 like $app->report, qr/\-{40}\nhogehoge\nfuga\n\-{40}/, 'assert report log';
+
+done_testing;

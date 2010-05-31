@@ -1,8 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 3;
-
+use Test::More;
 use FindBin::libs;
 
 package Mock::App;
@@ -21,3 +20,5 @@ is $app->failed, 1, 'script failed';
 
 like $app->report, qr/\-{40}\n\[error\] DIEEEEEEE![^\n]+\n\-{40}/, 'assert error report log';
 note $app->report;
+
+done_testing;
