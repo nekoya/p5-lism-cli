@@ -22,9 +22,4 @@ is $app->config, $yamlname, 'assert config yaml filename';
 isa_ok $app->conf, 'Config::YAML';
 is $app->conf->{ alert_email }->{ warn }, 'warn@example.com', 'assert config value of email:warn';
 
-is $app->debug, 1, 'assert debug mode is enable';
-
-$app->run;
-$app->send_report;
-
 done_testing;
