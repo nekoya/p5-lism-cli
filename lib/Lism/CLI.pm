@@ -156,6 +156,8 @@ sub send_report {
 
 sub _send_mail {
     my ($self, $args) = @_;
+    Carp::croak 'From: is required' unless $args->{ from };
+    Carp::croak 'To: is required' unless $args->{ to };
     my $mail = Email::MIME->create(
         header => [
             From    => $args->{ from },
